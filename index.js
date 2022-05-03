@@ -4,6 +4,7 @@ const axios = require('axios')
 
 const { RPC_URL, PRIVATE_KEY, BLOCKSCOUT_BASE_API, SKIP_DRY_RUN, RECEIVER, MAX_FEE_PER_GAS, MAX_PRIORITY_FEE_PER_GAS } = process.env
 const GAS_LIMIT = parseInt(process.env.GAS_LIMIT, 10) || 500000
+const BATCH_SIZE = parseInt(process.env.BATCH_SIZE, 10) || 20
 
 const web3 = new Web3(RPC_URL)
 const account = web3.eth.accounts.wallet.add(PRIVATE_KEY)
@@ -45,7 +46,13 @@ async function main() {
 
   console.log(`Starting nonce: ${nonce}`)
 
+  let pendingTxs = 0
+
   for (let token of tokens) {
+    while (pendingTxs >= BATCH_SIZE) {
+      await new Promise(res => setTimeout(res, 100))
+    }
+
     console.log(`Sweeping token ${token.balance} ${token.name} (${token.symbol}) to ${RECEIVER}`)
 
     const contract = new web3.eth.Contract(abi, token.contractAddress)
@@ -61,6 +68,7 @@ async function main() {
     }
     const raw = await web3.eth.accounts.signTransaction(tx, PRIVATE_KEY)
     if (SKIP_DRY_RUN === 'true') {
+      pendingTxs++
       await new Promise((res, rej) => {
         web3.eth.sendSignedTransaction(raw.rawTransaction, (error, hash) => {
           if (error) {
@@ -69,7 +77,7 @@ async function main() {
             console.log(`Tx hash: ${hash}`)
             res(hash)
           }
-        })
+        }).then(() => pendingTxs--)
       })
     } else {
       try {
