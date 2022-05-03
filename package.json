@@ -1,0 +1,11 @@
+{
+  "name": "sweeper",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.27.2",
+    "dotenv": "^16.0.0",
+    "web3": "^1.7.3"
+  }
+}
